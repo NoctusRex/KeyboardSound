@@ -15,8 +15,6 @@ parser.add_argument(
 parser.add_argument(
     '-bo', type=str, help='beep on (up, down, both - default = up)', default='up')
 parser.add_argument(
-    '-scm', type=float, help='scan code multiplier (default = 1)', default=1)
-parser.add_argument(
     '-bfo', type=str, help='base frequency operator (+, -, *, / - default = *)', default='*')
 parser.add_argument(
     '-r', type=bool, help='use random parameters (default = false)', default=False)
@@ -28,7 +26,6 @@ beepModes = ['up', 'down', 'both']
 baseFrequency = args.bf
 soundDuration = args.sd
 beepOn = args.bo
-scanCodeMultiplier = args.scm
 baseFrequencyOperator = args.bfo
 randomParameters = args.r
 
@@ -36,14 +33,12 @@ if randomParameters:
     baseFrequency = random.randrange(37, 32768)
     soundDuration = random.randrange(20, 100)
     beepOn = random.choice(beepModes)
-    scanCodeMultiplier = random.randrange(1, 100)
     baseFrequencyOperator = random.choice(list(ops))
 
 print('---------PARAMETERS-----------')
 print('base frequency:', baseFrequency)
 print('sound duration:', soundDuration)
 print('beep on:', beepOn)
-print('scan code multiplier:', scanCodeMultiplier)
 print('base frequenzy operator:', baseFrequencyOperator)
 print('use random parameters:', randomParameters)
 print('---------LAST BEEP-----------')
@@ -51,8 +46,14 @@ print('---------LAST BEEP-----------')
 
 def keyPressed(event):
     if event.event_type == beepOn or beepOn == beepModes[2]:
+        # https://pages.mtu.edu/~suits/NoteFreqCalcs.html
+        # fn = f0 * (a)n --> 65*(2^[1/12])^(x-1)
+        # f0 = the frequency of one fixed note which must be defined. A common choice is setting the A above middle C (A4) at f0 = 440 Hz.
+        # n = the number of half steps away from the fixed note you are. If you are at a higher note, n is positive. If you are on a lower note, n is negative.
+        # fn = the frequency of the note n half steps away.
+        # a = (2)1/12 = the twelth root of 2 = the number which when multiplied by itself 12 times equals 2 = 1.059463094359...
         frequency = int(max(37, min(ops[baseFrequencyOperator](
-            baseFrequency, (event.scan_code * scanCodeMultiplier)), 32767)))
+            baseFrequency, math.pow(math.pow(2, 1/12), event.scan_code - 1)), 32767)))
         winsound.Beep(frequency, soundDuration)
 
         print('key:', str.ljust(event.name + ' - (' + str(event.scan_code) + ')', 20, ' '), 'freqency:', str.ljust(str(frequency) +
