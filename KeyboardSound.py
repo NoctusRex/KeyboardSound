@@ -18,6 +18,8 @@ parser.add_argument(
     '-bfo', type=str, help='base frequency operator (+, -, *, / - default = *)', default='*')
 parser.add_argument(
     '-r', type=bool, help='use random parameters (default = false)', default=False)
+parser.add_argument(
+    '-p', type=bool, help='print all keys and their frequencies', default=False)
 args = parser.parse_args()
 
 ops = {'+': operator.add, '-': operator.sub,
@@ -28,6 +30,7 @@ soundDuration = args.sd
 beepOn = args.bo
 baseFrequencyOperator = args.bfo
 randomParameters = args.r
+printFrequencies = args.p
 
 if randomParameters:
     baseFrequency = random.randrange(37, 32768)
@@ -41,7 +44,6 @@ print('sound duration:', soundDuration)
 print('beep on:', beepOn)
 print('base frequenzy operator:', baseFrequencyOperator)
 print('use random parameters:', randomParameters)
-print('---------LAST BEEP-----------')
 
 
 def keyPressed(event):
@@ -52,15 +54,26 @@ def keyPressed(event):
         # n = the number of half steps away from the fixed note you are. If you are at a higher note, n is positive. If you are on a lower note, n is negative.
         # fn = the frequency of the note n half steps away.
         # a = (2)1/12 = the twelth root of 2 = the number which when multiplied by itself 12 times equals 2 = 1.059463094359...
-        frequency = int(max(37, min(ops[baseFrequencyOperator](
-            baseFrequency, math.pow(math.pow(2, 1/12), event.scan_code - 1)), 32767)))
+        frequency = getFrequency(event.scan_code)
         winsound.Beep(frequency, soundDuration)
-
-        print('key:', str.ljust(event.name + ' - (' + str(event.scan_code) + ')', 20, ' '), 'freqency:', str.ljust(str(frequency) +
-              ' hz', 8, ' '), 'note:', str.ljust(str(frequency_to_note(frequency)), 10, ' '), end='\r')
+        printScanCode(event.name, event.scan_code, frequency, True)
 
 
-def frequency_to_note(frequency):
+def getFrequency(scan_code):
+    return int(max(37, min(ops[baseFrequencyOperator](
+        baseFrequency, math.pow(math.pow(2, 1/12), scan_code - 1)), 32767)))
+
+
+def printScanCode(key, scan_code, frequency, overrideLastLine):
+    if overrideLastLine:
+        print('freqency:', str.ljust(str(frequency) +
+                                     ' hz', 8, ' '), 'note:', str.ljust(str(frequencyToNote(frequency)), 10, ' '), 'key:', str.ljust(key + ' - (' + str(scan_code) + ')', 20, ' '), end='\r')
+    else:
+        print('freqency:', str.ljust(str(frequency) +
+                                     ' hz', 8, ' '), 'note:', str.ljust(str(frequencyToNote(frequency)), 10, ' '), 'key:', str.ljust(key + ' - (' + str(scan_code) + ')', 20, ' '))
+
+
+def frequencyToNote(frequency):
     # https://stackoverflow.com/questions/64505024/turning-a-frequency-into-a-note-in-python
     NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
     OCTAVE_MULTIPLIER = 2
@@ -81,5 +94,23 @@ def frequency_to_note(frequency):
     return (note_name, note_octave)
 
 
+def printFrequencies():
+    print("--------FREQUENCIES----------")
+
+    keyboard._os_keyboard.init()
+    chars = keyboard._os_keyboard.from_name.keys()
+    for char in chars:
+        try:
+            scan_code = keyboard.key_to_scan_codes(char)
+            frequency = getFrequency(scan_code[0])
+            printScanCode(char, scan_code[0], frequency, False)
+        except:
+            pass
+
+
+if printFrequencies:
+    printFrequencies()
+
+print('---------LAST BEEP-----------')
 keyboard.hook(keyPressed)
 keyboard.wait()
